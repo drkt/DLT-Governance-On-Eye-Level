@@ -1,0 +1,53 @@
+@startuml
+skinparam componentStyle rectangle
+
+package "DLT Infrastructure" {
+  [TelcoGovernance.sol] <<SmartContract>>
+  [AuditLog.sol] <<Library>>
+  [IdentityRegistry.sol] <<SmartContract>>
+  [DLT Ledger] <<Blockchain>>
+}
+
+package "Telco Participants (Equal Peers)" {
+  [Governance Gateway]
+  [Validator Node]
+  [MPC Key Storage]
+}
+
+package "Independent Auditor" {
+  [Audit Authority]
+}
+
+actor "New Member" as Partner
+actor "Validator"
+actor "Onboarded User" as Reader
+
+' --- Governance & Membership ---
+Partner --> [Governance Gateway] : requestOnboarding(DID, x509)
+[Governance Gateway] --> [TelcoGovernance.sol] : submitRequest()
+Validator --> [TelcoGovernance.sol] : approve(), reject(), offboard()
+[TelcoGovernance.sol] --> [AuditLog.sol] : logAudit()
+[AuditLog.sol] --> [DLT Ledger] : recordLog()
+
+' --- Identity Management ---
+[TelcoGovernance.sol] <|-- [IdentityRegistry.sol]
+[IdentityRegistry.sol] --> [DLT Ledger] : store DID/x509 status
+
+Partner --> [IdentityRegistry.sol] : registerIdentity(did, x509)
+Reader --> [IdentityRegistry.sol] : readDID(), readX509()
+
+note right of Reader
+  Access only if member status is Onboarded
+end note
+
+' --- Supporting Infrastructure ---
+[TelcoGovernance.sol] --> [MPC Key Storage] : optional key handling
+[TelcoGovernance.sol] --> [Audit Authority] : emit audit event
+[Audit Authority] --> [DLT Ledger] : publish audit results
+
+note right of [TelcoGovernance.sol]
+  - All actions via validator quorum
+  - No central owner / no single point of failure
+end note
+@enduml
+
