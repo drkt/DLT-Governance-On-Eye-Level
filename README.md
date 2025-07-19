@@ -77,6 +77,12 @@ function getVoteCount(bytes32 auditId) public view returns (uint);
 - Support for Rust integration with `mpc_stub.rs`, `fhe_stub.rs`
 - FFI bridge (`ffi_bridge.rs`) for cross-call between Solidity & Rust
 - Common audit data structures in `audit_types.rs` for interoperability
+- Hardhat integration test. Testcase for AuditAggregator.test.js checks finalizeAudit(), in particular valid&incalid signature (from signer)
+```bash
+npx hardhat test test/AuditAggregator.test.js
+```
+
+
 
 ---
 
