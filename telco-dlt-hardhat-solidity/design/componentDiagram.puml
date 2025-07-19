@@ -1,0 +1,68 @@
+@startuml
+skinparam componentStyle rectangle
+
+package "DLT Infrastructure" {
+  [TelcoGovernance.sol] <<SmartContract>>
+  [AuditLog.sol] <<Library>>
+  [IdentityRegistry.sol] <<SmartContract>>
+  [AuditAggregator.sol] <<SmartContract>>
+  [DLT Ledger] <<Blockchain>>
+}
+
+package "Telco Participants (Equal Peers)" {
+  [Governance Gateway]
+  [Validator Node]
+  [MPC Key Storage]
+}
+
+package "Distributed Audit Committee" {
+  [Auditor Node 1] <<Validator>>
+  [Auditor Node 2] <<Validator>>
+  [Auditor Node 3] <<Validator>>
+}
+
+actor "New Member" as Partner
+actor "Validator"
+actor "Onboarded User" as Reader
+
+' --- Governance & Membership ---
+Partner --> [Governance Gateway] : requestOnboarding(DID, x509)
+[Governance Gateway] --> [TelcoGovernance.sol] : submitRequest()
+Validator --> [TelcoGovernance.sol] : approve(), reject(), offboard()
+[TelcoGovernance.sol] --> [AuditLog.sol] : logAudit()
+[AuditLog.sol] --> [DLT Ledger] : recordLog()
+
+' --- Identity Management ---
+[TelcoGovernance.sol] <|-- [IdentityRegistry.sol]
+[IdentityRegistry.sol] --> [DLT Ledger] : store DID/x509
+Partner --> [IdentityRegistry.sol] : registerIdentity(did, x509)
+Reader --> [IdentityRegistry.sol] : readDID(), readX509()
+
+note right of Reader
+  Access only if member is Onboarded
+end note
+
+' --- Distributed Audit Process ---
+[TelcoGovernance.sol] --> [AuditAggregator.sol] : emit AuditRequest()
+[AuditAggregator.sol] --> [Auditor Node 1] : request vote
+[AuditAggregator.sol] --> [Auditor Node 2] : request vote
+[AuditAggregator.sol] --> [Auditor Node 3] : request vote
+[Auditor Node 1] --> [AuditAggregator.sol] : submit signed vote
+[Auditor Node 2] --> [AuditAggregator.sol] : submit signed vote
+[Auditor Node 3] --> [AuditAggregator.sol] : submit signed vote
+[AuditAggregator.sol] --> [DLT Ledger] : write AuditResult
+
+note right of [AuditAggregator.sol]
+  Collects MPC/FHE-based audit votes
+  Verifies threshold consensus (n-of-m)
+  Anchors result to chain
+end note
+
+' --- Infrastructure Support ---
+[TelcoGovernance.sol] --> [MPC Key Storage] : optional key ops
+
+note right of [TelcoGovernance.sol]
+  - Fully decentralized validator governance
+  - Audits by distributed committee
+end note
+@enduml
