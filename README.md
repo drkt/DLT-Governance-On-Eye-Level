@@ -67,7 +67,8 @@ function getVoteCount(bytes32 auditId) public view returns (uint);
 ---
 ## Component Diagram
 ![Alt text](ComponentDiagram)
-<img src="./telco-dlt-hardhat-solidity/design/componentDiagram.svg">
+<img src="./telco-dlt-hardhat-solidity/design/componentDiagram.svg" .diagram-view svg {
+background-color: white;
 
 ---
 
