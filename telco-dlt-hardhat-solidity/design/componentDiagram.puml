@@ -1,0 +1,47 @@
+@startuml
+skinparam componentStyle rectangle
+
+package "DLT Network" {
+ [Governance Smart Contract] <<SmartContract>>
+ [Compliance Contract] <<SmartContract>>
+ [DLT Ledger] <<Distributed Ledger>>
+}
+
+package "Telco Partner" {
+ [Governance Gateway]
+ [Local Validator Node]
+ [MPC Key Shard Storage]
+}
+
+package "Trusted 3rd Party" {
+ [Audit Authority]
+}
+
+actor "Telco Owner/Admin" as Admin
+actor "New Partner" as Partner
+actor "Validator Node" as Validator
+
+' Interactions
+Partner --> [Governance Gateway] : Onboarding request
+[Governance Gateway] --> [Governance Smart Contract] : requestOnboarding()
+
+Validator --> [Governance Smart Contract] : approveMember(), offboardMember()
+[Governance Smart Contract] --> [DLT Ledger] : Write DID/x509 + Status
+
+[Governance Smart Contract] --> [Compliance Contract] : deploySmartContract()
+[Governance Smart Contract] --> [MPC Key Shard Storage] : KeyInit/KeyRevoke
+
+[Governance Smart Contract] --> [Audit Authority] : emit Audit Events
+[Audit Authority] --> [Governance Smart Contract] : publish Audit Result
+
+Admin --> [Governance Smart Contract] : rejectMember()
+
+[Governance Smart Contract] --> [DLT Ledger] : Update Status (Onboarded/Offboarded)
+
+note right of [Governance Smart Contract]
+  - Multisig approval tracking
+  - Status transitions
+  - Audit Logging
+end note
+
+@enduml
