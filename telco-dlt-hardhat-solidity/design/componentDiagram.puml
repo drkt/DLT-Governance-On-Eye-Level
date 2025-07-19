@@ -1,6 +1,7 @@
 @startuml
-skinparam componentStyle rectangle
 skinparam backgroundColor white
+skinparam componentStyle rectangle
+
 
 package "DLT Infrastructure" {
   [TelcoGovernance.sol] <<SmartContract>>
