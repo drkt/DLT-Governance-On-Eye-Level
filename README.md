@@ -1,4 +1,4 @@
-# DLT-Governance-On-Eye-Level
+# Balance of power: Distributed decision-making for multi-stakeholder-oriented DLT governance
 
 Telco-DLT Modular Framework 
 
