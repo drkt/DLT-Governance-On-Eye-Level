@@ -5,7 +5,7 @@ package "DLT Infrastructure" {
   [TelcoGovernance.sol] <<SmartContract>>
   [AuditLog.sol] <<Library>>
   [IdentityRegistry.sol] <<SmartContract>>
-  [DLT Ledger] <<Blockchain>>
+  [DLT Ledger] <<DistributedLedgerNode>>
 }
 
 package "Telco Participants (Equal Peers)" {
@@ -31,23 +31,27 @@ Validator --> [TelcoGovernance.sol] : approve(), reject(), offboard()
 
 ' --- Identity Management ---
 [TelcoGovernance.sol] <|-- [IdentityRegistry.sol]
-[IdentityRegistry.sol] --> [DLT Ledger] : store DID/x509 status
+[IdentityRegistry.sol] --> [DLT Ledger] : store DID/x509
 
+' Self-sovereign write action
 Partner --> [IdentityRegistry.sol] : registerIdentity(did, x509)
-Reader --> [IdentityRegistry.sol] : readDID(), readX509()
+note right of Partner
+  Member generates DID/x.509 locally
+  Writes to ledger after onboarding
+end note
 
+Reader --> [IdentityRegistry.sol] : readDID(), readX509()
 note right of Reader
-  Access only if member status is Onboarded
+  Access only if status == Onboarded
 end note
 
 ' --- Supporting Infrastructure ---
 [TelcoGovernance.sol] --> [MPC Key Storage] : optional key handling
-[TelcoGovernance.sol] --> [Audit Authority] : emit audit event
+[TelcoGovernance.sol] --> [Audit Authority] : emit audit events
 [Audit Authority] --> [DLT Ledger] : publish audit results
 
 note right of [TelcoGovernance.sol]
-  - All actions via validator quorum
-  - No central owner / no single point of failure
+  - Decentralized validator consensus
+  - No owner, no central control
 end note
 @enduml
-
