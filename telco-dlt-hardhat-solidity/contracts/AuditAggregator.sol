@@ -1,66 +1,53 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.0;
 
 contract AuditAggregator {
-    struct AuditVote {
-        address auditor;
-        bytes32 hash;
+    struct AuditResult {
+        bytes32 auditId;
+        bytes32 dataHash;
+        address[] signers;
+        bytes signature;
+        bool finalized;
     }
 
-    struct AuditSession {
-        uint voteCount;
-        mapping(address => bool) voted;
-        AuditVote[] votes;
+    mapping(bytes32 => AuditResult) public auditResults;
+
+    event AuditFinalized(bytes32 indexed auditId, address signer, bytes32 dataHash);
+
+    function finalizeAudit(
+        bytes32 auditId,
+        bytes32 dataHash,
+        bytes memory signature
+    ) public {
+        require(!auditResults[auditId].finalized, "Audit already finalized");
+
+        address signer = recoverSigner(dataHash, signature);
+        require(signer != address(0), "Invalid signature");
+
+        auditResults[auditId] = AuditResult({
+            auditId: auditId,
+            dataHash: dataHash,
+            signers: new address[](1),
+            signature: signature,
+            finalized: true
+        });
+        auditResults[auditId].signers[0] = signer;
+
+        emit AuditFinalized(auditId, signer, dataHash);
     }
 
-    mapping(bytes32 => AuditSession) public audits;
-    address[] public auditors;
-    uint public quorum;
-
-    event AuditRequested(bytes32 indexed auditId);
-    event VoteSubmitted(bytes32 indexed auditId, address auditor);
-    event AuditFinalized(bytes32 indexed auditId, bytes32 result);
-
-    modifier onlyAuditor() {
-        bool valid = false;
-        for (uint i = 0; i < auditors.length; i++) {
-            if (auditors[i] == msg.sender) {
-                valid = true;
-                break;
-            }
+    function recoverSigner(bytes32 hash, bytes memory sig) internal pure returns (address) {
+        if (sig.length != 65) return address(0);
+        bytes32 r;
+        bytes32 s;
+        uint8 v;
+        assembly {
+            r := mload(add(sig, 0x20))
+            s := mload(add(sig, 0x40))
+            v := byte(0, mload(add(sig, 0x60)))
         }
-        require(valid, "Not authorized auditor");
-        _;
-    }
-
-    constructor(address[] memory _auditors, uint _quorum) {
-        auditors = _auditors;
-        quorum = _quorum;
-    }
-
-    function requestAudit(bytes32 auditId) public {
-        require(audits[auditId].voteCount == 0, "Already exists");
-        emit AuditRequested(auditId);
-    }
-
-    function submitVote(bytes32 auditId, bytes32 hash) public onlyAuditor {
-        AuditSession storage session = audits[auditId];
-        require(!session.voted[msg.sender], "Already voted");
-        session.voted[msg.sender] = true;
-        session.votes.push(AuditVote(msg.sender, hash));
-        session.voteCount++;
-        emit VoteSubmitted(auditId, msg.sender);
-
-        if (session.voteCount >= quorum) {
-            emit AuditFinalized(auditId, hash); // simplistic: last hash as "final"
-        }
-    }
-
-    function getAuditors() public view returns (address[] memory) {
-        return auditors;
-    }
-
-    function getVoteCount(bytes32 auditId) public view returns (uint) {
-        return audits[auditId].voteCount;
+        if (v < 27) v += 27;
+        if (v != 27 && v != 28) return address(0);
+        return ecrecover(hash, v, r, s);
     }
 }
